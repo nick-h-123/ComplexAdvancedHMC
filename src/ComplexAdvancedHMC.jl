@@ -25,7 +25,7 @@ include("utilities.jl")
 # z: phase point / a pair of θ and r
 
 include("metric.jl")
-export UnitEuclideanMetric, EuclideanMetric, HermitianMatrix
+export UnitEuclideanMetric, EuclideanMetric, HermitianMetric
 
 include("hamiltonian.jl")
 export Hamiltonian
