@@ -1,5 +1,7 @@
 # ComplexAdvancedHMC.jl
 
+Extended the AdvancedHMC package to include complex-valued parameters.
+
 ## References
 
 1. Neal, R. M. (2011). MCMC using Hamiltonian dynamics. Handbook of Markov chain Monte Carlo, 2(11), 2. ([arXiv](https://arxiv.org/pdf/1206.1901))
