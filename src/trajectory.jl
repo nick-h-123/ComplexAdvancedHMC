@@ -693,11 +693,11 @@ function find_good_stepsize(
     h::Hamiltonian,
     θ::AbstractVector{T};
     max_n_iters::Int=100,
-) where {T<:Real}
+) where {T<:Union{Complex,Real}}
     # Initialize searching parameters
-    ϵ′ = ϵ = T(0.1)
-    a_min, a_cross, a_max = T(0.25), T(0.5), T(0.75) # minimal, crossing, maximal accept ratio
-    d = T(2.0)
+    ϵ′ = ϵ = Float64(0.1)
+    a_min, a_cross, a_max = Float64(0.25), Float64(0.5), Float64(0.75) # minimal, crossing, maximal accept ratio
+    d = Float64(2.0)
     # Create starting phase point
     r = rand(rng, h.metric) # sample momentum variable
     z = phasepoint(h, θ, r)
