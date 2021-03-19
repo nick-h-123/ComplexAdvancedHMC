@@ -119,7 +119,7 @@ phasepoint(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     θ::AbstractVecOrMat{T},
     h::Hamiltonian
-) where {T<:Union{Complex, Real} = phasepoint(h, θ, rand(rng, h.metric))
+) where {T<:Union{Complex, Real}} = phasepoint(h, θ, rand(rng, h.metric))
 
 abstract type AbstractMomentumRefreshment end
 
