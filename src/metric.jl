@@ -102,9 +102,9 @@ function _rand(
     r = sqrt(0.5)*(randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...))
     vecOrmat = length(size(metric.M⁻¹))
     if vecOrmat == 1
-        r = 0.5*(r + conj(reverse(test)))
+        r = 0.5*(r + conj(reverse(r)))
     elseif vecOrmat == 2
-        r = 0.5*(r + conj(transpose(test)))
+        r = 0.5*(r + conj(transpose(r)))
     end
     r ./= metric.sqrtM⁻¹
     return r
