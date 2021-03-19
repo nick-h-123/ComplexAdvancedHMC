@@ -98,8 +98,8 @@ end
 function _rand(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     metric::HermitianMetric{T}
-) where {T<:Complex}
-    r = randn(rng, T, size(metric)...)
+) where {T<:AbstractFloat}
+    r = sqrt(0.5)*(randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...))
     if size(metric.M⁻¹) == 1
         r = 0.5*(r + conj(reverse(test)))
     elseif size(metric.M⁻¹) == 2
