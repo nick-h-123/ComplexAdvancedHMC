@@ -1,6 +1,6 @@
 # ComplexAdvancedHMC.jl
 
-Extended the AdvancedHMC package to include complex-valued parameters.
+Extend the AdvancedHMC package to include complex-valued parameters.
 
 ## References
 
