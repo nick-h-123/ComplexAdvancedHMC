@@ -57,7 +57,7 @@ struct HermitianMetric{T,A<:AbstractVecOrMat{T}} <: AbstractMetric
     _temp   ::  A
 end
 
-function HermitianMetric(M⁻¹::AbstractVecOrMat{T}) where {T<:Complex}
+function HermitianMetric(M⁻¹::AbstractVecOrMat{T}) where {T<:AbstractFloat}
     return HermitianMetric(M⁻¹, sqrt.(M⁻¹), similar(M⁻¹))
 end
 HermitianMetric(::Type{T}, sz) where {T} = HermitianMetric(ones(T, sz...))
