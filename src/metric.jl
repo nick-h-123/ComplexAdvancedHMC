@@ -104,6 +104,7 @@ function _rand(
         r = 0.5*(r + conj(reverse(test)))
     elseif size(metric.M⁻¹) == 2
         r = 0.5*(r + conj(transpose(test)))
+    end
     r ./= metric.sqrtM⁻¹
     return r
 end
