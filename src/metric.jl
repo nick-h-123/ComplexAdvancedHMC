@@ -100,9 +100,10 @@ function _rand(
     metric::HermitianMetric{T}
 ) where {T<:AbstractFloat}
     r = sqrt(0.5)*(randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...))
-    if size(metric.M⁻¹) == 1
+    vecOrmat = length(size(metric.M⁻¹))
+    if vecOrmat == 1
         r = 0.5*(r + conj(reverse(test)))
-    elseif size(metric.M⁻¹) == 2
+    elseif vecOrmat == 2
         r = 0.5*(r + conj(transpose(test)))
     end
     r ./= metric.sqrtM⁻¹
