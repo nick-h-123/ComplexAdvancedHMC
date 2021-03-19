@@ -1,4 +1,4 @@
-module AdvancedHMC
+module ComplexAdvancedHMC
 
 const DEBUG = convert(Bool, parse(Int, get(ENV, "DEBUG_AHMC", "0")))
 
