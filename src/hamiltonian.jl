@@ -109,6 +109,13 @@ neg_energy(
     θ::T
 ) where {T<:AbstractMatrix} = -vec(sum(abs2.(r) .* h.metric.M⁻¹; dims=1) ) / 2
 
+neg_energy(
+    h::Hamiltonian{<:HermitianMetric},
+    r::T,
+    θ::T
+) where {T<:AbstractVector} = -sum(abs2.(r) .* h.metric.M⁻¹) / 2
+
+
 energy(args...) = -neg_energy(args...)
 
 ####
