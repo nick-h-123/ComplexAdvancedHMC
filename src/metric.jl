@@ -99,7 +99,7 @@ function _rand(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     metric::HermitianMetric{T}
 ) where {T<:AbstractFloat}
-    r = sqrt(0.5)*(randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...))
+    r = randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...)
     vecOrmat = length(size(metric.M⁻¹))
     if vecOrmat == 1
         r = 0.5*(r + conj(reverse(r)))
