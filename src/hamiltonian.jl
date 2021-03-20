@@ -26,7 +26,7 @@ end
 
 ∂H∂r(h::Hamiltonian{<:UnitEuclideanMetric}, r::AbstractVecOrMat) = copy(r)
 ∂H∂r(h::Hamiltonian{<:EuclideanMetric}, r::AbstractVecOrMat) = h.metric.M⁻¹ .* r
-∂H∂r(h::Hamiltonian{<:HermitianMetric}, r::AbstractVecOrMat) = h.metric.M⁻¹ * r
+∂H∂r(h::Hamiltonian{<:HermitianMetric}, r::AbstractVecOrMat) = h.metric.M⁻¹ .* r
 
 struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex}}, V<:DualValue}
     θ::T  # Position variables / model parameters.
