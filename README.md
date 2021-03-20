@@ -4,7 +4,7 @@ Extendes [AdvancedHMC](https://www.google.com/url?sa=t&rct=j&q=&esrc=s&source=we
 
 Changes from AdvancedHMC:
 - General support for complex-valued parameters while still maintaining most of the support for real-valued parameters.
-- Removed support for DenseMatrices, only supports uncorrelated noise.
+- Removed support for DenseMatrices.
 - Added HermitianMetric to support hermitian parameters.
 
 Dynamic sampling and stopping criterion not supported yet.
