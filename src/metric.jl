@@ -69,7 +69,7 @@ HermitianMetric(::Type{T}, sz) where {T} = HermitianMetric(ones(T, sz...))
 HermitianMetric(sz::Tuple) = HermitianMetric(Float64, sz)
 HermitianMetric(::Type{T}, dim::Int) where {T} = HermitianMetric(ones(T, dim))
 HermitianMetric(dim::Int) = HermitianMetric(Float64, dim)
-HermitianMetric(::Type{T}, dim::Int, N::Int) where {T} = HermitianMetric(map(i->ones(T, dim), 1:N))
+HermitianMetric(::Type{T}, dim::Int, N::Int) where {T} = HermitianMetric(map(i->ones(T, dim), 1:N), N)
 HermitianMetric(dim::Int, N::Int) = HermitianMetric(Float64, dim, N)
 
 renew(ue::HermitianMetric, M⁻¹) = HermitianMetric(M⁻¹)
