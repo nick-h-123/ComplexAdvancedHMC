@@ -20,7 +20,7 @@ end
 reconstruct(κ::AbstractMCMCKernel, adaptor::AbstractAdaptor) = 
     reconstruct(κ, τ=reconstruct(κ.τ, adaptor))
 
-function resize(h::Hamiltonian, θ::AbstractVecOrMat{T}) where {T<:Union{AbstractFloat, Complex}}
+function resize(h::Hamiltonian, θ::AbstractVecOrMat{T}) where {T<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}
     metric = h.metric
     if size(metric) != size(θ)
         metric = getname(metric)(size(θ))
@@ -36,7 +36,7 @@ end
 function sample_init(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}}, 
     h::Hamiltonian, 
-    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex}}
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}
 )
     # Ensure h.metric has the same dim as θ.
     h = resize(h, θ)
@@ -73,7 +73,7 @@ function Adaptation.adapt!(
     adaptor::AbstractAdaptor,
     i::Int,
     n_adapts::Int,
-    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex}},
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}},
     α::AbstractScalarOrVec{<:AbstractFloat}
 )
     isadapted = false
