@@ -1,143 +1,212 @@
-### Mutable states
+# Update of hamiltonian and proposal
 
-mutable struct DAState{T<:AbstractScalarOrVec{<:AbstractFloat}}
-    m     :: Int
-    ϵ     :: T
-    μ     :: T
-    x_bar :: T
-    H_bar :: T
+reconstruct(h::Hamiltonian, ::AbstractAdaptor) = h
+function reconstruct(
+    h::Hamiltonian, adaptor::Union{MassMatrixAdaptor, NaiveHMCAdaptor, StanHMCAdaptor}
+)
+    metric = renew(h.metric, getM⁻¹(adaptor))
+    return reconstruct(h, metric=metric)
 end
 
-computeμ(ϵ::AbstractScalarOrVec{<:AbstractFloat}) = log.(10 * ϵ)
-
-function DAState(ϵ::T) where {T}
-    μ = computeμ(ϵ)
-    return DAState(0, ϵ, μ, zero(T), zero(T))
+reconstruct(τ::Trajectory, ::AbstractAdaptor) = τ
+function reconstruct(
+    τ::Trajectory, adaptor::Union{StepSizeAdaptor, NaiveHMCAdaptor, StanHMCAdaptor}
+)
+    # FIXME: this does not support change type of `ϵ` (e.g. Float to Vector)
+    integrator = update_nom_step_size(τ.integrator, getϵ(adaptor))
+    return reconstruct(τ, integrator=integrator)
 end
 
-function DAState(ϵ::AbstractVector{T}) where {T}
-    n = length(ϵ)
-    μ = computeμ(ϵ)
-    return DAState(0, ϵ, μ, zeros(T, n), zeros(T, n))
-end
+reconstruct(κ::AbstractMCMCKernel, adaptor::AbstractAdaptor) = 
+    reconstruct(κ, τ=reconstruct(κ.τ, adaptor))
 
-function reset!(das::DAState{T}) where {T<:AbstractFloat}
-    das.m = 0
-    das.μ = computeμ(das.ϵ)
-    das.x_bar = zero(T)
-    das.H_bar = zero(T)
-end
-
-function reset!(das::DAState{<:AbstractVector{T}}) where {T<:AbstractFloat}
-    das.m = 0
-    das.μ .= computeμ(das.ϵ)
-    das.x_bar .= zero(T)
-    das.H_bar .= zero(T)
-end
-
-mutable struct MSSState{T<:AbstractScalarOrVec{<:AbstractFloat}}
-    ϵ :: T
-end
-
-### Step size adaptors
-
-abstract type StepSizeAdaptor <: AbstractAdaptor end
-
-initialize!(adaptor::StepSizeAdaptor, n_adapts::Int) = nothing
-finalize!(adaptor::StepSizeAdaptor) = nothing
-
-getϵ(ss::StepSizeAdaptor) = ss.state.ϵ
-
-struct FixedStepSize{T<:AbstractScalarOrVec{<:AbstractFloat}} <: StepSizeAdaptor
-    ϵ :: T
-end
-Base.show(io::IO, a::FixedStepSize) = print(io, "FixedStepSize($(a.ϵ))")
-
-getϵ(fss::FixedStepSize) = fss.ϵ
-
-struct ManualSSAdaptor{T<:AbstractScalarOrVec{<:AbstractFloat}} <:StepSizeAdaptor
-    state :: MSSState{T}
-end
-Base.show(io::IO, a::ManualSSAdaptor) = print(io, "ManualSSAdaptor()")
-
-ManualSSAdaptor(initϵ::T) where {T<:AbstractScalarOrVec{<:AbstractFloat}} = ManualSSAdaptor{T}(MSSState(initϵ))
-
-"""
-An implementation of the Nesterov dual averaging algorithm to tune step size.
-
-References
-
-Hoffman, M. D., & Gelman, A. (2014). The No-U-Turn Sampler: adaptively setting path lengths in Hamiltonian Monte Carlo. Journal of Machine Learning Research, 15(1), 1593-1623.
-Nesterov, Y. (2009). Primal-dual subgradient methods for convex problems. Mathematical programming, 120(1), 221-259.
-"""
-struct NesterovDualAveraging{T<:AbstractFloat} <: StepSizeAdaptor
-  γ     :: T
-  t_0   :: T
-  κ     :: T
-  δ     :: T
-  state :: DAState{<:AbstractScalarOrVec{T}}
-end
-Base.show(io::IO, a::NesterovDualAveraging) = print(io, "NesterovDualAveraging(γ=$(a.γ), t_0=$(a.t_0), κ=$(a.κ), δ=$(a.δ), state.ϵ=$(getϵ(a)))")
-
-NesterovDualAveraging(
-    γ::T,
-    t_0::T,
-    κ::T,
-    δ::T,
-    ϵ::VT
-) where {T<:AbstractFloat, VT<:AbstractScalarOrVec{T}} = NesterovDualAveraging(γ, t_0, κ, δ, DAState(ϵ))
-
-NesterovDualAveraging(
-    δ::T,
-    ϵ::VT
-) where {T<:AbstractFloat, VT<:AbstractScalarOrVec{T}} = NesterovDualAveraging(T(0.05), T(10.0), T(0.75), δ, ϵ)
-
-# Ref: https://github.com/stan-dev/stan/blob/develop/src/stan/mcmc/stepsize_adaptation.hpp
-# Note: This function is not merged with `adapt!` to empahsize the fact that
-#       step size adaptation is not dependent on `θ`.
-function adapt_stepsize!(da::NesterovDualAveraging{T}, α::AbstractScalarOrVec{<:T}) where {T<:AbstractFloat}
-    DEBUG && @debug "Adapting step size..." α
-
-    # Clip average MH acceptance probability
-    if α isa AbstractVector
-        α[α .> 1] .= one(T)
-    else
-        α = α > 1 ? one(T) : α
+function resize(h::Hamiltonian, θ::AbstractVecOrMat{T}) where {T<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}
+    metric = h.metric
+    if size(metric) != size(θ)
+        metric = getname(metric)(size(θ))
+        h = reconstruct(h, metric=metric)
     end
-
-    @unpack state, γ, t_0, κ, δ = da
-    @unpack μ, m, x_bar, H_bar = state
-
-    m = m + 1
-
-    η_H = one(T) / (m + t_0)
-    H_bar = (one(T) - η_H) * H_bar .+ η_H * (δ .- α)
-
-    x = μ .- H_bar * sqrt(m) / γ     # x ≡ logϵ
-    η_x = m^(-κ)
-    x_bar = (one(T) - η_x) * x_bar .+ η_x * x
-
-    ϵ = exp.(x)
-    DEBUG && @debug "Adapting step size..." "new ϵ = $ϵ" "old ϵ = $(da.state.ϵ)"
-
-    # TODO: we might want to remove this when all other numerical issues are correctly handelled
-    if any(isnan.(ϵ)) || any(isinf.(ϵ))
-        @warn "Incorrect ϵ = $ϵ; ϵ_previous = $(da.state.ϵ) is used instead."
-        # FIXME: this revert is buggy for batch mode
-        @unpack m, ϵ, x_bar, H_bar = state
-    end
-
-    @pack! state = m, ϵ, x_bar, H_bar
+    return h
 end
 
-adapt!(
-    da::NesterovDualAveraging,
-    θ::AbstractVecOrMat{<:Union{AbstractFloat,Complex, Array{ComplexF64,1}}},
+##
+## Interface functions
+##
+
+function sample_init(
+    rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}}, 
+    h::Hamiltonian, 
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}
+)
+    # Ensure h.metric has the same dim as θ.
+    h = resize(h, θ)
+    # Initial transition
+    t = Transition(phasepoint(rng, θ, h), NamedTuple())
+    return h, t
+end
+
+function transition(
+    rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}}, 
+    h::Hamiltonian, 
+    κ::HMCKernel,
+    z::PhasePoint,
+)
+    @unpack refreshment, τ = κ
+    τ = reconstruct(τ, integrator=jitter(rng, τ.integrator))
+    z = refresh(rng, refreshment, h, z)
+    return transition(rng, τ, h, z)
+end
+
+Adaptation.adapt!(
+    h::Hamiltonian,
+    κ::AbstractMCMCKernel,
+    adaptor::Adaptation.NoAdaptation,
+    i::Int,
+    n_adapts::Int,
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}},
     α::AbstractScalarOrVec{<:AbstractFloat}
-) = adapt_stepsize!(da, α)
+) = h, κ, false
 
-reset!(da::NesterovDualAveraging) = reset!(da.state)
+function Adaptation.adapt!(
+    h::Hamiltonian,
+    κ::AbstractMCMCKernel,
+    adaptor::AbstractAdaptor,
+    i::Int,
+    n_adapts::Int,
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}},
+    α::AbstractScalarOrVec{<:AbstractFloat}
+)
+    isadapted = false
+    if i <= n_adapts
+        i == 1 && Adaptation.initialize!(adaptor, n_adapts)
+        adapt!(adaptor, θ, α)
+        i == n_adapts && finalize!(adaptor)
+        h = reconstruct(h, adaptor)
+        κ = reconstruct(κ, adaptor)
+        isadapted = true
+    end
+    return h, κ, isadapted
+end
 
-function finalize!(da::NesterovDualAveraging)
-    da.state.ϵ = exp.(da.state.x_bar)
+"""
+Progress meter update with all trajectory stats, iteration number and metric shown.
+"""
+function pm_next!(pm, stat::NamedTuple)
+    ProgressMeter.next!(pm; showvalues=[tuple(s...) for s in pairs(stat)])
+end
+
+"""
+Simple progress meter update without any show values.
+"""
+simple_pm_next!(pm, stat::NamedTuple) = ProgressMeter.next!(pm)
+
+##
+## Sampling functions
+##
+
+sample(
+    h::Hamiltonian,
+    κ::AbstractMCMCKernel,
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}},
+    n_samples::Int,
+    adaptor::AbstractAdaptor=NoAdaptation(),
+    n_adapts::Int=min(div(n_samples, 10), 1_000);
+    drop_warmup=false,
+    verbose::Bool=true,
+    progress::Bool=false,
+    (pm_next!)::Function=pm_next!
+) = sample(
+    GLOBAL_RNG,
+    h,
+    κ,
+    θ,
+    n_samples,
+    adaptor,
+    n_adapts;
+    drop_warmup=drop_warmup,
+    verbose=verbose,
+    progress=progress,
+    (pm_next!)=pm_next!,
+)
+
+"""
+    sample(
+        rng::AbstractRNG,
+        h::Hamiltonian,
+        κ::AbstractMCMCKernel,
+        θ::AbstractVecOrMat{T},
+        n_samples::Int,
+        adaptor::AbstractAdaptor=NoAdaptation(),
+        n_adapts::Int=min(div(n_samples, 10), 1_000);
+        drop_warmup::Bool=false,
+        verbose::Bool=true,
+        progress::Bool=false
+    )
+
+Sample `n_samples` samples using the proposal `κ` under Hamiltonian `h`.
+- The randomness is controlled by `rng`. 
+    - If `rng` is not provided, `GLOBAL_RNG` will be used.
+- The initial point is given by `θ`.
+- The adaptor is set by `adaptor`, for which the default is no adaptation.
+    - It will perform `n_adapts` steps of adaptation, for which the default is the minimum of `1_000` and 10% of `n_samples`
+- `drop_warmup` controls to drop the samples during adaptation phase or not
+- `verbose` controls the verbosity
+- `progress` controls whether to show the progress meter or not
+"""
+function sample(
+    rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
+    h::Hamiltonian,
+    κ::HMCKernel,
+    θ::T,
+    n_samples::Int,
+    adaptor::AbstractAdaptor=NoAdaptation(),
+    n_adapts::Int=min(div(n_samples, 10), 1_000);
+    drop_warmup=false,
+    verbose::Bool=true,
+    progress::Bool=false,
+    (pm_next!)::Function=pm_next!
+) where {T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}}
+    @assert !(drop_warmup && (adaptor isa Adaptation.NoAdaptation)) "Cannot drop warmup samples if there is no adaptation phase."
+    # Prepare containers to store sampling results
+    n_keep = n_samples - (drop_warmup ? n_adapts : 0)
+    θs, stats = Vector{T}(undef, n_keep), Vector{NamedTuple}(undef, n_keep)
+    # Initial sampling
+    h, t = sample_init(rng, h, θ)
+    # Progress meter
+    pm = progress ? ProgressMeter.Progress(n_samples, desc="Sampling", barlen=31) : nothing
+    time = @elapsed for i = 1:n_samples
+        # Make a transition
+        t = transition(rng, h, κ, t.z)
+        # Adapt h and κ; what mutable is the adaptor
+        tstat = stat(t)
+        h, κ, isadapted = adapt!(h, κ, adaptor, i, n_adapts, t.z.θ, tstat.acceptance_rate)
+        tstat = merge(tstat, (is_adapt=isadapted,))
+        # Update progress meter
+        if progress
+            # Do include current iteration and mass matrix
+            pm_next!(pm, (iterations=i, tstat..., mass_matrix=h.metric))
+        # Report finish of adapation
+        elseif verbose && isadapted && i == n_adapts
+            @info "Finished $n_adapts adapation steps" adaptor κ.τ.integrator h.metric
+        end
+        # Store sample
+        if !drop_warmup || i > n_adapts
+            j = i - drop_warmup * n_adapts
+            θs[j], stats[j] = t.z.θ, tstat
+        end
+    end
+    # Report end of sampling
+    if verbose
+        EBFMI_est = EBFMI(map(s -> s.hamiltonian_energy, stats))
+        average_acceptance_rate = mean(map(s -> s.acceptance_rate, stats))
+        if θ isa AbstractVector
+            n_chains = 1
+        else
+            n_chains = size(θ, 2)
+            EBFMI_est = "[" * join(EBFMI_est, ", ") * "]"
+            average_acceptance_rate = "[" * join(average_acceptance_rate, ", ") * "]"
+        end
+        @info "Finished $n_samples sampling steps for $n_chains chains in $time (s)" h κ EBFMI_est average_acceptance_rate
+    end
+    return θs, stats
 end
