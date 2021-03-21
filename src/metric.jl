@@ -66,7 +66,7 @@ function HermitianMetric(M⁻¹::AbstractVecOrMat{T}, N::Int) where {T<:Abstract
     return HermitianMetric(M⁻¹, map(M⁻¹i -> sqrt.(M⁻¹i), M⁻¹), map(M⁻¹i -> similar(M⁻¹i), M⁻¹), N)
 end
 HermitianMetric(::Type{T}, sz) where {T} = HermitianMetric(ones(T, sz...))
-HermitianMetric(sz) = HermitianMetric(Float64, sz)
+HermitianMetric(sz::Tuple) = HermitianMetric(Float64, sz)
 HermitianMetric(::Type{T}, dim::Int) where {T} = HermitianMetric(ones(T, dim))
 HermitianMetric(dim::Int) = HermitianMetric(Float64, dim)
 HermitianMetric(::Type{T}, dim::Int, N::Int) where {T} = HermitianMetric(map(i->ones(T, dim), 1:N))
