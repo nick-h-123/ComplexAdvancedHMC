@@ -38,7 +38,7 @@ function EuclideanMetric(M⁻¹::AbstractVecOrMat{T}) where {T<:AbstractFloat}
     return EuclideanMetric(M⁻¹, sqrt.(M⁻¹), similar(M⁻¹))
 end
 EuclideanMetric(::Type{T}, sz) where {T} = EuclideanMetric(ones(T, sz...))
-EuclideanMetric(sz) = EuclideanMetric(Float64, sz)
+EuclideanMetric(sz::Tuple) = EuclideanMetric(Float64, sz)
 EuclideanMetric(::Type{T}, dim::Int) where {T} = EuclideanMetric(ones(T, dim))
 EuclideanMetric(dim::Int) = EuclideanMetric(Float64, dim)
 
