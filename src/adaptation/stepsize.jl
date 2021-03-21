@@ -132,7 +132,7 @@ end
 
 adapt!(
     da::NesterovDualAveraging,
-    θ::AbstractVecOrMat{<:Union{AbstractFloat,Complex}},
+    θ::AbstractVecOrMat{<:Union{AbstractFloat,Complex, Array{ComplexF64, 1}}},
     α::AbstractScalarOrVec{<:AbstractFloat}
 ) = adapt_stepsize!(da, α)
 
