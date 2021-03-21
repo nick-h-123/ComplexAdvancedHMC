@@ -55,15 +55,22 @@ struct HermitianMetric{T,A<:AbstractVecOrMat{T}} <: AbstractMetric
     sqrtM⁻¹ ::  A
     # Pre-allocation for intermediate variables
     _temp   ::  A
+    # Number of vectors or matrics
+    N       :: Int64
 end
 
 function HermitianMetric(M⁻¹::AbstractVecOrMat{T}) where {T<:AbstractFloat}
-    return HermitianMetric(M⁻¹, sqrt.(M⁻¹), similar(M⁻¹))
+    return HermitianMetric(M⁻¹, sqrt.(M⁻¹), similar(M⁻¹), 1)
+end
+function HermitianMetric(M⁻¹::AbstractVecOrMat{T}) where {T<:AbstractVector}
+    return HermitianMetric(M⁻¹, map(M⁻¹i -> sqrt.(M⁻¹i), M⁻¹), map(M⁻¹i -> similar(M⁻¹i), M⁻¹), N)
 end
 HermitianMetric(::Type{T}, sz) where {T} = HermitianMetric(ones(T, sz...))
 HermitianMetric(sz) = HermitianMetric(Float64, sz)
 HermitianMetric(::Type{T}, dim::Int) where {T} = HermitianMetric(ones(T, dim))
 HermitianMetric(dim::Int) = HermitianMetric(Float64, dim)
+HermitianMetric(::Type{T}, dim::Int, N::Int) where {T} = HermitianMetric(map(i->ones(T, dim), 1:N))
+HermitianMetric(dim::Int, N::Int) = HermitianMetric(Float64, dim, N)
 
 renew(ue::HermitianMetric, M⁻¹) = HermitianMetric(M⁻¹)
 
@@ -99,15 +106,19 @@ function _rand(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     metric::HermitianMetric{T}
 ) where {T<:AbstractFloat}
-    r = randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...)
-    vecOrmat = length(size(metric.M⁻¹))
-    if vecOrmat == 1
-        r = 0.5*(r + conj(reverse(r)))
-    elseif vecOrmat == 2
-        r = 0.5*(r + conj(transpose(r)))
-    end
-    r ./= metric.sqrtM⁻¹
-    return r
+    numArrs = metric.N
+    if numArrs == 1
+        r = randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...)
+        vecOrmat = length(size(metric.M⁻¹))
+        if vecOrmat == 1
+            r = 0.5*(r + conj(reverse(r)))
+        elseif vecOrmat == 2
+            r = 0.5*(r + conj(transpose(r)))
+        end
+        r ./= metric.sqrtM⁻¹
+        return r
+    else
+        return map(i -> _rand(HermitianMetric(metrici, sqrt.(metrici), similar(metrici), 1)
 end
 
 Base.rand(rng::AbstractRNG, metric::AbstractMetric) = _rand(rng, metric)    # this disambiguity is required by Random.rand
