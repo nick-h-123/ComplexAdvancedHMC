@@ -121,7 +121,7 @@ function neg_energy(h::Hamiltonian{<:HermitianMetric}, r::T, θ::T) where {T<:Ab
     if numArr==1
         return -sum(abs2.(r) .* h.metric.M⁻¹) / 2
     else
-        return -sum(map(i->sum(abs2.(r[i]) .* h.metric.M⁻¹[i]), i=1:numArr)) / 2
+        return -sum(map(i->sum(abs2.(r[i]) .* h.metric.M⁻¹[i]), 1:numArr)) / 2
     end
 end
 
