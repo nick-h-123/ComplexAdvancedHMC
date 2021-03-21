@@ -118,7 +118,7 @@ function _rand(
         r ./= metric.sqrtM⁻¹
         return r
     else
-        return map(i -> _rand(HermitianMetric(metrici, sqrt.(metrici), similar(metrici), 1)), 1:numArrs)
+        return map(i -> _rand(HermitianMetric(metric.M⁻¹[i], sqrt.(metric.M⁻¹[i]), similar(metric.M⁻¹[i]), 1)), 1:numArrs)
     end
 end
 
