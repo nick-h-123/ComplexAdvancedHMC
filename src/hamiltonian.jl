@@ -7,7 +7,7 @@ struct Hamiltonian{M<:AbstractMetric, Tlogπ, T∂logπ∂θ}
 end
 Base.show(io::IO, h::Hamiltonian) = print(io, "Hamiltonian(metric=$(h.metric))")
 
-struct DualValue{V<:AbstractScalarOrVec{<:AbstractFloat}, G<:AbstractVecOrMat{<:Union{AbstractFloat, Complex}}}
+struct DualValue{V<:AbstractScalarOrVec{<:AbstractFloat}, G<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{Complex, 1}}}}
     value::V    # cached value, e.g. logπ(θ)
     gradient::G # cached gradient, e.g. ∇logπ(θ)
     function DualValue(value::V, gradient::G) where {V, G}
@@ -26,9 +26,16 @@ end
 
 ∂H∂r(h::Hamiltonian{<:UnitEuclideanMetric}, r::AbstractVecOrMat) = copy(r)
 ∂H∂r(h::Hamiltonian{<:EuclideanMetric}, r::AbstractVecOrMat) = h.metric.M⁻¹ .* r
-∂H∂r(h::Hamiltonian{<:HermitianMetric}, r::AbstractVecOrMat) = h.metric.M⁻¹ .* r
+function ∂H∂r(h::Hamiltonian{<:HermitianMetric}, r::AbstractVecOrMat)
+    numArr = h.metric.N
+    if numArr == 1
+        return h.metric.M⁻¹ .* r
+    else
+        return map(i->h.metric.M⁻¹[i] .* r[i], 1:numArr)
+    end
+end
 
-struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex}}, V<:DualValue}
+struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{Complex, 1}}}, V<:DualValue}
     θ::T  # Position variables / model parameters.
     r::T  # Momentum variables
     ℓπ::V # Cached neg potential energy for the current θ.
@@ -44,7 +51,7 @@ struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex}}, V<:DualV
     end
 end
 
-Base.similar(z::PhasePoint{<:AbstractVecOrMat{T}}) where {T<:Union{AbstractFloat, Complex}} = 
+Base.similar(z::PhasePoint{<:AbstractVecOrMat{T}}) where {T<:Union{AbstractFloat, Complex, Array{Complex, 1}}} = 
     PhasePoint(
         zeros(T, size(z.θ)...), 
         zeros(T, size(z.r)...), 
@@ -109,11 +116,14 @@ neg_energy(
     θ::T
 ) where {T<:AbstractMatrix} = -vec(sum(abs2.(r) .* h.metric.M⁻¹; dims=1) ) / 2
 
-neg_energy(
-    h::Hamiltonian{<:HermitianMetric},
-    r::T,
-    θ::T
-) where {T<:AbstractVector} = -sum(abs2.(r) .* h.metric.M⁻¹) / 2
+function neg_energy(h::Hamiltonian{<:HermitianMetric}, r::T, θ::T) where {T<:AbstractVector} 
+    numArr = h.metric.N
+    if numArr==1
+        return -sum(abs2.(r) .* h.metric.M⁻¹) / 2
+    else
+        return -sum(map(i->sum(abs2.(r[i]) .* h.metric.M⁻¹[i]), i=1:numArr)) / 2
+    end
+end
 
 
 energy(args...) = -neg_energy(args...)
@@ -126,7 +136,7 @@ phasepoint(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     θ::AbstractVecOrMat{T},
     h::Hamiltonian
-) where {T<:Union{Complex, Real}} = phasepoint(h, θ, rand(rng, h.metric))
+) where {T<:Union{Complex, Real, Array{Complex, 1}}} = phasepoint(h, θ, rand(rng, h.metric))
 
 abstract type AbstractMomentumRefreshment end
 
