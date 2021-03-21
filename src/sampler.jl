@@ -107,7 +107,7 @@ simple_pm_next!(pm, stat::NamedTuple) = ProgressMeter.next!(pm)
 sample(
     h::Hamiltonian,
     κ::AbstractMCMCKernel,
-    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex}},
+    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}},
     n_samples::Int,
     adaptor::AbstractAdaptor=NoAdaptation(),
     n_adapts::Int=min(div(n_samples, 10), 1_000);
@@ -165,7 +165,7 @@ function sample(
     verbose::Bool=true,
     progress::Bool=false,
     (pm_next!)::Function=pm_next!
-) where {T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex}}}
+) where {T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}}
     @assert !(drop_warmup && (adaptor isa Adaptation.NoAdaptation)) "Cannot drop warmup samples if there is no adaptation phase."
     # Prepare containers to store sampling results
     n_keep = n_samples - (drop_warmup ? n_adapts : 0)
