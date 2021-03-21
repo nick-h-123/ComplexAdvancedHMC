@@ -105,7 +105,7 @@ end
 function _rand(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     metric::HermitianMetric{T}
-) where {T<:AbstractFloat}
+) where {T<:Union{AbstractFloat, AbstractVector}}
     numArrs = metric.N
     if numArrs == 1
         r = randn(rng, T, size(metric)...)+im*randn(rng, T, size(metric)...)
