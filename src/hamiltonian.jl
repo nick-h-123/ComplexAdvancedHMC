@@ -35,7 +35,7 @@ function ∂H∂r(h::Hamiltonian{<:HermitianMetric}, r::AbstractVecOrMat)
     end
 end
 
-struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{Complex, 1}}}, V<:DualValue}
+struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}, V<:DualValue}
     θ::T  # Position variables / model parameters.
     r::T  # Momentum variables
     ℓπ::V # Cached neg potential energy for the current θ.
@@ -51,7 +51,7 @@ struct PhasePoint{T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{Comp
     end
 end
 
-Base.similar(z::PhasePoint{<:AbstractVecOrMat{T}}) where {T<:Union{AbstractFloat, Complex, Array{Complex, 1}}} = 
+Base.similar(z::PhasePoint{<:AbstractVecOrMat{T}}) where {T<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}} = 
     PhasePoint(
         zeros(T, size(z.θ)...), 
         zeros(T, size(z.r)...), 
@@ -136,7 +136,7 @@ phasepoint(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     θ::AbstractVecOrMat{T},
     h::Hamiltonian
-) where {T<:Union{Complex, Real, Array{Complex, 1}}} = phasepoint(h, θ, rand(rng, h.metric))
+) where {T<:Union{Complex, Real, Array{ComplexF64, 1}}} = phasepoint(h, θ, rand(rng, h.metric))
 
 abstract type AbstractMomentumRefreshment end
 
