@@ -119,6 +119,7 @@ function _rand(
         return r
     else
         return map(i -> _rand(HermitianMetric(metrici, sqrt.(metrici), similar(metrici), 1)), 1:numArrs)
+    end
 end
 
 Base.rand(rng::AbstractRNG, metric::AbstractMetric) = _rand(rng, metric)    # this disambiguity is required by Random.rand
