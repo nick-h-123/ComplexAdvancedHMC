@@ -693,7 +693,7 @@ function find_good_stepsize(
     h::Hamiltonian,
     θ::AbstractVector{T};
     max_n_iters::Int=100,
-) where {T<:Union{Complex,Real}}
+) where {T<:Union{Complex,Real,Array{Complex, 1}}}
     # Initialize searching parameters
     ϵ′ = ϵ = Float64(0.1)
     a_min, a_cross, a_max = Float64(0.25), Float64(0.5), Float64(0.75) # minimal, crossing, maximal accept ratio
@@ -757,7 +757,7 @@ end
 
 function find_good_stepsize(
     h::Hamiltonian,
-    θ::AbstractVector{<:Union{AbstractFloat, Complex}};
+    θ::AbstractVector{<:Union{AbstractFloat, Complex, Array{Complex, 1}}};
     max_n_iters::Int=100,
 )
     return find_good_stepsize(GLOBAL_RNG, h, θ; max_n_iters=max_n_iters)
