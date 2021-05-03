@@ -107,7 +107,7 @@ simple_pm_next!(pm, stat::NamedTuple) = ProgressMeter.next!(pm)
 sample(
     h::Hamiltonian,
     κ::AbstractMCMCKernel,
-    θ::AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}},
+    θ::AbstractArray,
     n_samples::Int,
     adaptor::AbstractAdaptor=NoAdaptation(),
     n_adapts::Int=min(div(n_samples, 10), 1_000);
