@@ -153,6 +153,7 @@ Sample `n_samples` samples using the proposal `κ` under Hamiltonian `h`.
 - `verbose` controls the verbosity
 - `progress` controls whether to show the progress meter or not
 """
+# T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}
 function sample(
     rng::Union{AbstractRNG, AbstractVector{<:AbstractRNG}},
     h::Hamiltonian,
@@ -165,7 +166,7 @@ function sample(
     verbose::Bool=true,
     progress::Bool=false,
     (pm_next!)::Function=pm_next!
-) where {T<:AbstractVecOrMat{<:Union{AbstractFloat, Complex, Array{ComplexF64,1}}}}
+) where {T<:AbstractArray}
     @assert !(drop_warmup && (adaptor isa Adaptation.NoAdaptation)) "Cannot drop warmup samples if there is no adaptation phase."
     # Prepare containers to store sampling results
     n_keep = n_samples - (drop_warmup ? n_adapts : 0)
